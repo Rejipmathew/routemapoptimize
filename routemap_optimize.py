@@ -96,12 +96,18 @@ def display_route(route, loc_df):
         to_name = loc_df.loc[loc_df['Coordinates'] == loc2, 'Place_Name'].values[0]
         route_data.append((from_name, to_name, f"{distance:.2f} km", f"{distance * 0.621371:.2f} mi"))
 
-    st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
-    st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
+    # Display metrics and table
+    with st.container():
+        st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
+        st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
 
 # Main Streamlit application
 def main():
     st.title("Route Optimization with Interactive Map")
+
+    # Placeholder for map and table at the top of the page
+    map_placeholder = st.empty()
+    table_placeholder = st.empty()
 
     # Input for up to 10 addresses
     st.write("Enter up to 10 addresses:")
@@ -122,14 +128,16 @@ def main():
         place_names = [name for name, _, _ in geocoded]
         loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
 
-        # Display map with locations
-        st.map(pd.DataFrame(locations, columns=["lat", "lon"]))
-
         # Solve TSP for route optimization
         data_model = create_data_model(locations)
         try:
             optimal_route = tsp_solver(data_model)
-            display_route(optimal_route, loc_df)
+
+            # Display map and table in placeholders
+            with map_placeholder:
+                st.map(pd.DataFrame(locations, columns=["lat", "lon"]))
+            with table_placeholder:
+                display_route(optimal_route, loc_df)
 
             # Generate Google Maps link
             gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
