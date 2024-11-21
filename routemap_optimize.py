@@ -57,10 +57,23 @@ def get_route(coords):
 st.title("Route Optimizer with OpenStreetMap (Plotly)")
 st.subheader("Enter up to 10 addresses:")
 
+# Default addresses
+default_addresses = [
+    "1950 Old Alabama Rd, Roswell, GA, 30076",
+    "6015 State Bridge rd, Duluth, GA, 30097",
+    "3102 Hartford Mill Pl, Duluth, GA, 30097",
+    "928 Hawk Creek Trail, Lawrenceville, GA, 30043",
+    "1699 Centerville Dr, Buford, GA, 30518"
+]
+
 # Input fields for addresses
 addresses = []
 for i in range(10):
-    address = st.text_input(f"Address {i + 1}", key=f"address_{i}")
+    address = st.text_input(
+        f"Address {i + 1}",
+        value=default_addresses[i] if i < len(default_addresses) else "",
+        key=f"address_{i}",
+    )
     if address.strip():
         addresses.append(address.strip())
 
