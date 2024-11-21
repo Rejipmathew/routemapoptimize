@@ -94,7 +94,7 @@ def display_route(route, loc_df):
 
         from_name = loc_df.loc[loc_df['Coordinates'] == loc1, 'Place_Name'].values[0]
         to_name = loc_df.loc[loc_df['Coordinates'] == loc2, 'Place_Name'].values[0]
-        route_data.append((from_name, to_name, f"{distance:.2f} km", f"{distance * 0.621371:.2f} mi"))
+        route_data.append((from_name, to_name, f"{distance:.2f} km}", f"{distance * 0.621371:.2f} mi"))
 
     st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
     st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
@@ -103,9 +103,19 @@ def display_route(route, loc_df):
 def main():
     st.title("Route Optimization with Interactive Map")
 
+    # Default addresses
+    default_addresses = [
+        "1950 Old Alabama Rd, Roswell, GA, 30076",
+        "6015 State Bridge rd, Duluth, GA, 30097",
+        "3102 Hartford Mill Pl, Duluth, GA,30097",
+        "928 Hawk Creek Trail, Lawrenceville, GA,30043",
+        "1699 Centerville Dr, Buford, GA,30518",
+        "1950 Old Alabama Rd, Roswell, GA, 30076"
+    ]
+    
     # Input for up to 10 addresses
     st.write("Enter up to 10 addresses:")
-    addresses = [st.text_input(f"Address {i + 1}") for i in range(10)]
+    addresses = default_addresses + [st.text_input(f"Address {i + 1}") for i in range(10)]
 
     # Display map and calculate route
     if st.button("Optimize Route"):
@@ -122,14 +132,19 @@ def main():
         place_names = [name for name, _, _ in geocoded]
         loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
 
-        # Display map with locations
-        st.map(pd.DataFrame(locations, columns=["lat", "lon"]))
-
         # Solve TSP for route optimization
         data_model = create_data_model(locations)
         try:
             optimal_route = tsp_solver(data_model)
-            display_route(optimal_route, loc_df)
+
+            # Create tabs for map and route table
+            tab1, tab2 = st.tabs(["Map", "Route Table"])
+            with tab1:
+                # Display map with locations
+                st.map(pd.DataFrame(locations, columns=["lat", "lon"]))
+            
+            with tab2:
+                display_route(optimal_route, loc_df)
 
             # Generate Google Maps link
             gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
