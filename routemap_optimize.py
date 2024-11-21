@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 from geopy.distance import geodesic
 import requests
-import math as python_math  # Using python-math
-import random2  # Using random2
+import math as python_math
+import random2
+import plotly.express as px
 
 # Function to compute distance matrix
 @st.cache_data
@@ -99,16 +100,60 @@ def display_route(route, loc_df):
     st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
     st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
 
+# Display map with route
+def display_map(route, locations):
+    route_df = pd.DataFrame(route, columns=["lat", "lon"])
+    route_df["sequence"] = range(1, len(route) + 1)
+    marker_df = pd.DataFrame(locations, columns=["lat", "lon"])
+    marker_df["address"] = [f"Address {i+1}" for i in range(len(locations))]
+
+    fig = px.scatter_mapbox(
+        marker_df,
+        lat="lat",
+        lon="lon",
+        hover_name="address",
+        zoom=12,
+        mapbox_style="carto-positron",
+    )
+
+    fig.add_scattermapbox(
+        lat=route_df["lat"],
+        lon=route_df["lon"],
+        mode="lines",
+        line=dict(width=4, color="blue"),
+        name="Route",
+    )
+
+    fig.add_scattermapbox(
+        lat=route_df["lat"],
+        lon=route_df["lon"],
+        mode="markers+text",
+        text=route_df["sequence"],
+        textposition="top right",
+        marker=dict(size=8, color="red"),
+        name="Route Points",
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
 # Main Streamlit application
 def main():
     st.title("Route Optimization with Interactive Map")
 
-    # Input for up to 10 addresses
-    st.write("Enter up to 10 addresses:")
-    addresses = [st.text_input(f"Address {i + 1}") for i in range(10)]
+    tab1, tab2 = st.tabs(["Map", "Address Search"])
 
-    # Display map and calculate route
+    with tab1:
+        st.subheader("Optimized Route")
+        st.write("This tab will display the optimized route on the map.")
+
+    with tab2:
+        st.subheader("Enter up to 10 addresses:")
+        addresses = [st.text_input(f"Address {i + 1}") for i in range(10)]
+
     if st.button("Optimize Route"):
+        with tab1:
+            st.subheader("Optimized Route")
+
         # Geocode the addresses
         geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
         geocoded = [x for x in geocoded if x is not None]  # Remove failed geocodes
@@ -122,14 +167,18 @@ def main():
         place_names = [name for name, _, _ in geocoded]
         loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
 
-        # Display map with locations
-        st.map(pd.DataFrame(locations, columns=["lat", "lon"]))
-
-        # Solve TSP for route optimization
-        data_model = create_data_model(locations)
         try:
+            # Solve TSP for route optimization
+            data_model = create_data_model(locations)
             optimal_route = tsp_solver(data_model)
-            display_route(optimal_route, loc_df)
+
+            with tab1:
+                display_map(optimal_route, locations)
+                display_route(optimal_route, loc_df)
+
+            with tab2:
+                st.subheader("Optimized Route Table")
+                display_route(optimal_route, loc_df)
 
             # Generate Google Maps link
             gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
