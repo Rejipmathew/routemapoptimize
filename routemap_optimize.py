@@ -1,48 +1,143 @@
-if st.button("Find Best Route"):
-    if len(addresses) < 2:
-        st.warning("Please enter at least two addresses.")
-    else:
-        # Get coordinates
-        coords = [get_coordinates(address) for address in addresses]
-        coords = [c for c in coords if c is not None]  # Filter invalid coords
+import streamlit as st
+import pandas as pd
+from geopy.distance import geodesic
+import requests
+import math as python_math  # Using python-math
+import random2  # Using random2
 
-        if len(coords) < 2:
-            st.error("Could not get enough valid addresses to calculate a route.")
-        else:
-            # Optimize route
-            optimized_coords = optimize_route(coords)
-            if optimized_coords:
-                # Fetch the route
-                route_data = get_route(optimized_coords)
-                if route_data:
-                    # Extract route geometry
-                    geometry = route_data["routes"][0]["geometry"]["coordinates"]
-                    route_coords = [(lat, lon) for lon, lat in geometry]
+# Function to compute distance matrix
+@st.cache_data
+def compute_distance_matrix(locations):
+    num_locations = len(locations)
+    distance_matrix = [[0] * num_locations for _ in range(num_locations)]
+    for i in range(num_locations):
+        for j in range(i, num_locations):
+            distance = geodesic(locations[i], locations[j]).kilometers
+            distance_matrix[i][j] = distance
+            distance_matrix[j][i] = distance
+    return distance_matrix
 
-                    # Prepare data for Plotly
-                    route_df = pd.DataFrame(route_coords, columns=["lat", "lon"])
-                    marker_df = pd.DataFrame(optimized_coords, columns=["lat", "lon"])
-                    marker_df["address"] = addresses  # Use original addresses for display
+# Function to create a data model for TSP
+def create_data_model(locations):
+    return {
+        'locations': locations,
+        'num_locations': len(locations),
+        'distance_matrix': compute_distance_matrix(locations),
+    }
 
-                    # Create the map with Plotly
-                    fig = px.scatter_mapbox(
-                        marker_df,
-                        lat="lat",
-                        lon="lon",
-                        hover_name="address",  # Address appears on hover
-                        zoom=12,
-                        mapbox_style="carto-positron",
-                    )
+# Geocode addresses using Photon API
+def geocode_address(address):
+    url = f'https://photon.komoot.io/api/?q={address}'
+    response = requests.get(url)
+    if response.status_code == 200:
+        results = response.json()
+        if results['features']:
+            first_result = results['features'][0]
+            latitude = first_result['geometry']['coordinates'][1]
+            longitude = first_result['geometry']['coordinates'][0]
+            return address, latitude, longitude
+    return None
 
-                    # Add the route as a line
-                    fig.add_scattermapbox(
-                        lat=route_df["lat"],
-                        lon=route_df["lon"],
-                        mode="lines",
-                        line=dict(width=4, color="blue"),
-                        name="Route",
-                        hoverinfo="skip",  # Disable hover for the line
-                    )
+# TSP Solver using Simulated Annealing
+def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95):
+    def distance(point1, point2):
+        return python_math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
 
-                    # Display the map
-                    st.plotly_chart(fig, use_container_width=True)
+    num_locations = data_model['num_locations']
+    locations = data_model['locations']
+
+    # Generate initial random solution
+    current_solution = list(range(num_locations))
+    random2.shuffle(current_solution)
+
+    # Calculate initial solution's distance
+    current_distance = sum(
+        distance(locations[current_solution[i - 1]], locations[current_solution[i]])
+        for i in range(num_locations)
+    )
+
+    best_solution = current_solution[:]
+    best_distance = current_distance
+
+    # Simulated Annealing
+    for _ in range(iterations):
+        temp = temperature * (cooling_rate ** _)
+        new_solution = current_solution[:]
+        i, j = random2.sample(range(num_locations), 2)
+        new_solution[i], new_solution[j] = new_solution[j], new_solution[i]
+
+        new_distance = sum(
+            distance(locations[new_solution[i - 1]], locations[new_solution[i]])
+            for i in range(num_locations)
+        )
+
+        delta = new_distance - current_distance
+        if delta < 0 or random2.random() < python_math.exp(-delta / temp):
+            current_solution = new_solution[:]
+            current_distance = new_distance
+
+        if current_distance < best_distance:
+            best_solution = current_solution[:]
+            best_distance = current_distance
+
+    return [locations[i] for i in best_solution] + [locations[best_solution[0]]]
+
+# Display route and distances
+def display_route(route, loc_df):
+    route_data = []
+    total_distance = 0
+
+    for i in range(len(route) - 1):
+        loc1, loc2 = route[i], route[i + 1]
+        distance = geodesic(loc1, loc2).kilometers
+        total_distance += distance
+
+        from_name = loc_df.loc[loc_df['Coordinates'] == loc1, 'Place_Name'].values[0]
+        to_name = loc_df.loc[loc_df['Coordinates'] == loc2, 'Place_Name'].values[0]
+        route_data.append((from_name, to_name, f"{distance:.2f} km", f"{distance * 0.621371:.2f} mi"))
+
+    st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
+    st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
+
+# Main Streamlit application
+def main():
+    st.title("Route Optimization with Interactive Map")
+
+    # Input for up to 10 addresses
+    st.write("Enter up to 10 addresses:")
+    addresses = [st.text_input(f"Address {i + 1}") for i in range(10)]
+
+    # Display map and calculate route
+    if st.button("Optimize Route"):
+        # Geocode the addresses
+        geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
+        geocoded = [x for x in geocoded if x is not None]  # Remove failed geocodes
+
+        if len(geocoded) < 2:
+            st.error("Please enter at least 2 valid addresses.")
+            return
+
+        # Extract coordinates and place names
+        locations = [(lat, lon) for _, lat, lon in geocoded]
+        place_names = [name for name, _, _ in geocoded]
+        loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
+
+        # Display map with locations
+        st.map(pd.DataFrame(locations, columns=["lat", "lon"]))
+
+        # Solve TSP for route optimization
+        data_model = create_data_model(locations)
+        try:
+            optimal_route = tsp_solver(data_model)
+            display_route(optimal_route, loc_df)
+
+            # Generate Google Maps link
+            gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
+                [f"{lat},{lon}" for lat, lon in optimal_route]
+            )
+            st.markdown(f"[Open Optimized Route in Google Maps]({gmaps_link})")
+        except Exception as e:
+            st.error(f"An error occurred during route optimization: {e}")
+
+if __name__ == "__main__":
+    main()
