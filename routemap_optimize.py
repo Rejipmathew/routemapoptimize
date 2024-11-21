@@ -113,9 +113,9 @@ def main():
         "1950 Old Alabama Rd, Roswell, GA, 30076"
     ]
     
-    # Input for up to 10 addresses
+    # Input for up to 10 addresses with default addresses pre-populated
     st.write("Enter up to 10 addresses:")
-    addresses = default_addresses + [st.text_input(f"Address {i + 1}") for i in range(10)]
+    addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
 
     # Display map and calculate route
     if st.button("Optimize Route"):
