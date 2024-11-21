@@ -94,7 +94,7 @@ def display_route(route, loc_df):
 
         from_name = loc_df.loc[loc_df['Coordinates'] == loc1, 'Place_Name'].values[0]
         to_name = loc_df.loc[loc_df['Coordinates'] == loc2, 'Place_Name'].values[0]
-        route_data.append((from_name, to_name, f"{distance:.2f} km}", f"{distance * 0.621371:.2f} mi"))
+        route_data.append((from_name, to_name, f"{distance:.2f} km", f"{distance * 0.621371:.2f} mi"))
 
     st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
     st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
