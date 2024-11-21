@@ -1,143 +1,115 @@
 import streamlit as st
-import pandas as pd
-from geopy.distance import geodesic
 import requests
-import math as python_math  # Using python-math
-import random2  # Using random2
+import pandas as pd
+import plotly.express as px
+from geopy.geocoders import Nominatim
+import itertools
 
-# Function to compute distance matrix
-@st.cache_data
-def compute_distance_matrix(locations):
-    num_locations = len(locations)
-    distance_matrix = [[0] * num_locations for _ in range(num_locations)]
-    for i in range(num_locations):
-        for j in range(i, num_locations):
-            distance = geodesic(locations[i], locations[j]).kilometers
-            distance_matrix[i][j] = distance
-            distance_matrix[j][i] = distance
-    return distance_matrix
+# OSRM Configuration
+OSRM_BASE_URL = "http://router.project-osrm.org/route/v1/driving"
 
-# Function to create a data model for TSP
-def create_data_model(locations):
-    return {
-        'locations': locations,
-        'num_locations': len(locations),
-        'distance_matrix': compute_distance_matrix(locations),
-    }
+# Function to get coordinates
+def get_coordinates(address):
+    geolocator = Nominatim(user_agent="route_optimizer")
+    location = geolocator.geocode(address)
+    if location:
+        return (location.latitude, location.longitude)
+    else:
+        st.error(f"Could not geocode address: {address}")
+        return None
 
-# Geocode addresses using Photon API
-def geocode_address(address):
-    url = f'https://photon.komoot.io/api/?q={address}'
-    response = requests.get(url)
+# Function to get route distance between two points
+def get_route_distance(coord1, coord2):
+    coord_string = f"{coord1[1]},{coord1[0]};{coord2[1]},{coord2[0]}"
+    params = {"overview": "false", "geometries": "polyline"}
+    response = requests.get(f"{OSRM_BASE_URL}/{coord_string}", params=params)
     if response.status_code == 200:
-        results = response.json()
-        if results['features']:
-            first_result = results['features'][0]
-            latitude = first_result['geometry']['coordinates'][1]
-            longitude = first_result['geometry']['coordinates'][0]
-            return address, latitude, longitude
-    return None
+        route_data = response.json()
+        return route_data["routes"][0]["distance"]  # Distance in meters
+    else:
+        return float("inf")  # Return a large distance if there's an error
 
-# TSP Solver using Simulated Annealing
-def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95):
-    def distance(point1, point2):
-        return python_math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
-
-    num_locations = data_model['num_locations']
-    locations = data_model['locations']
-
-    # Generate initial random solution
-    current_solution = list(range(num_locations))
-    random2.shuffle(current_solution)
-
-    # Calculate initial solution's distance
-    current_distance = sum(
-        distance(locations[current_solution[i - 1]], locations[current_solution[i]])
-        for i in range(num_locations)
-    )
-
-    best_solution = current_solution[:]
-    best_distance = current_distance
-
-    # Simulated Annealing
-    for _ in range(iterations):
-        temp = temperature * (cooling_rate ** _)
-        new_solution = current_solution[:]
-        i, j = random2.sample(range(num_locations), 2)
-        new_solution[i], new_solution[j] = new_solution[j], new_solution[i]
-
-        new_distance = sum(
-            distance(locations[new_solution[i - 1]], locations[new_solution[i]])
-            for i in range(num_locations)
+# Function to optimize route using TSP (Brute Force)
+def optimize_route(coords):
+    min_distance = float("inf")
+    best_order = None
+    for order in itertools.permutations(coords):
+        total_distance = sum(
+            get_route_distance(order[i], order[i + 1]) for i in range(len(order) - 1)
         )
+        if total_distance < min_distance:
+            min_distance = total_distance
+            best_order = order
+    return best_order
 
-        delta = new_distance - current_distance
-        if delta < 0 or random2.random() < python_math.exp(-delta / temp):
-            current_solution = new_solution[:]
-            current_distance = new_distance
+# Function to get the optimized route from OSRM
+def get_route(coords):
+    coord_string = ";".join([f"{lon},{lat}" for lat, lon in coords])
+    params = {"overview": "full", "geometries": "geojson"}
+    response = requests.get(f"{OSRM_BASE_URL}/{coord_string}", params=params)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error("Error fetching route data from OSRM.")
+        return None
 
-        if current_distance < best_distance:
-            best_solution = current_solution[:]
-            best_distance = current_distance
+# Streamlit App
+st.title("Route Optimizer with OpenStreetMap (Plotly)")
+st.subheader("Enter up to 10 addresses:")
 
-    return [locations[i] for i in best_solution] + [locations[best_solution[0]]]
+# Input fields for addresses
+addresses = []
+for i in range(10):
+    address = st.text_input(f"Address {i + 1}", key=f"address_{i}")
+    if address.strip():
+        addresses.append(address.strip())
 
-# Display route and distances
-def display_route(route, loc_df):
-    route_data = []
-    total_distance = 0
+# Process on button click
+if st.button("Find Best Route"):
+    if len(addresses) < 2:
+        st.warning("Please enter at least two addresses.")
+    else:
+        # Get coordinates
+        coords = [get_coordinates(address) for address in addresses]
+        coords = [c for c in coords if c is not None]  # Filter out invalid coordinates
 
-    for i in range(len(route) - 1):
-        loc1, loc2 = route[i], route[i + 1]
-        distance = geodesic(loc1, loc2).kilometers
-        total_distance += distance
+        if len(coords) < 2:
+            st.error("Not enough valid addresses to calculate a route.")
+        else:
+            # Optimize the route
+            optimized_coords = optimize_route(coords)
+            if optimized_coords:
+                # Fetch route from OSRM
+                route_data = get_route(optimized_coords)
+                if route_data:
+                    # Extract route geometry
+                    geometry = route_data["routes"][0]["geometry"]["coordinates"]
+                    route_coords = [(lat, lon) for lon, lat in geometry]
 
-        from_name = loc_df.loc[loc_df['Coordinates'] == loc1, 'Place_Name'].values[0]
-        to_name = loc_df.loc[loc_df['Coordinates'] == loc2, 'Place_Name'].values[0]
-        route_data.append((from_name, to_name, f"{distance:.2f} km", f"{distance * 0.621371:.2f} mi"))
+                    # Prepare data for Plotly
+                    route_df = pd.DataFrame(route_coords, columns=["lat", "lon"])
+                    marker_df = pd.DataFrame(optimized_coords, columns=["lat", "lon"])
+                    marker_df["address"] = addresses
 
-    st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
-    st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
+                    # Create the map with Plotly
+                    fig = px.scatter_mapbox(
+                        marker_df,
+                        lat="lat",
+                        lon="lon",
+                        hover_name="address",  # Display address on hover
+                        zoom=12,
+                        mapbox_style="carto-positron",
+                    )
 
-# Main Streamlit application
-def main():
-    st.title("Route Optimization with Interactive Map")
+                    # Add route line
+                    fig.add_scattermapbox(
+                        lat=route_df["lat"],
+                        lon=route_df["lon"],
+                        mode="lines",
+                        line=dict(width=4, color="blue"),
+                        name="Route",
+                        hoverinfo="skip",  # Disable hover on the line
+                    )
 
-    # Input for up to 10 addresses
-    st.write("Enter up to 10 addresses:")
-    addresses = [st.text_input(f"Address {i + 1}") for i in range(10)]
-
-    # Display map and calculate route
-    if st.button("Optimize Route"):
-        # Geocode the addresses
-        geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
-        geocoded = [x for x in geocoded if x is not None]  # Remove failed geocodes
-
-        if len(geocoded) < 2:
-            st.error("Please enter at least 2 valid addresses.")
-            return
-
-        # Extract coordinates and place names
-        locations = [(lat, lon) for _, lat, lon in geocoded]
-        place_names = [name for name, _, _ in geocoded]
-        loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
-
-        # Display map with locations
-        st.map(pd.DataFrame(locations, columns=["lat", "lon"]))
-
-        # Solve TSP for route optimization
-        data_model = create_data_model(locations)
-        try:
-            optimal_route = tsp_solver(data_model)
-            display_route(optimal_route, loc_df)
-
-            # Generate Google Maps link
-            gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
-                [f"{lat},{lon}" for lat, lon in optimal_route]
-            )
-            st.markdown(f"[Open Optimized Route in Google Maps]({gmaps_link})")
-        except Exception as e:
-            st.error(f"An error occurred during route optimization: {e}")
-
-if __name__ == "__main__":
-    main()
+                    # Display map
+                    st.plotly_chart(fig, use_container_width=True)
