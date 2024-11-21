@@ -1,7 +1,6 @@
 streamlit==1.40.1
-
-pandas==2.1.1
-geopy==2.3.0
-requests==2.31.0
+pandas==2.2.3
+geopy==2.4.1
+requests==2.32.3
 random2==1.0.1
 python-math==0.0.1 
