@@ -6,40 +6,50 @@ import math as python_math
 import random2
 import plotly.express as px
 
-# Function to compute distance matrix
-@st.cache_data
-def compute_distance_matrix(locations):
-    num_locations = len(locations)
-    distance_matrix = [[0] * num_locations for _ in range(num_locations)]
-    for i in range(num_locations):
-        for j in range(i, num_locations):
-            distance = geodesic(locations[i], locations[j]).kilometers
-            distance_matrix[i][j] = distance
-            distance_matrix[j][i] = distance
+# OSRM Configuration
+OSRM_BASE_URL = "http://router.project-osrm.org/route/v1/driving"
+
+# Function to get coordinates
+def get_coordinates(address):
+    geolocator = Nominatim(user_agent="route_finder")
+    location = geolocator.geocode(address)
+    if location:
+        return (location.latitude, location.longitude)
+    else:
+        st.error(f"Could not geocode address: {address}")
+        return None
+
+# Function to get travel distance between coordinates using OSRM
+def get_travel_distance(coord1, coord2):
+    coord_string = f"{coord1[1]},{coord1[0]};{coord2[1]},{coord2[0]}"
+    response = requests.get(f"{OSRM_BASE_URL}/{coord_string}?overview=false")
+    if response.status_code == 200:
+        data = response.json()
+        return data['routes'][0]['distance']
+    else:
+        st.error(f"Error fetching travel distance data from OSRM. Status code: {response.status_code}")
+        return float('inf')
+
+# Function to create distance matrix
+def create_distance_matrix(coords):
+    distance_matrix = np.zeros((len(coords), len(coords)))
+    for i, coord1 in enumerate(coords):
+        for j, coord2 in enumerate(coords):
+            distance_matrix[i][j] = get_travel_distance(coord1, coord2)
     return distance_matrix
 
-# Function to create a data model for TSP
-def create_data_model(locations):
-    return {
-        'locations': locations,
-        'num_locations': len(locations),
-        'distance_matrix': compute_distance_matrix(locations),
-    }
-
-# Geocode addresses using Photon API
-def geocode_address(address):
-    url = f'https://photon.komoot.io/api/?q={address}'
-    response = requests.get(url)
+# Function to get route coordinates using OSRM
+def get_route_coordinates(coords):
+    coord_string = ";".join([f"{lon},{lat}" for lat, lon in coords])
+    response = requests.get(f"{OSRM_BASE_URL}/{coord_string}?overview=full&geometries=geojson")
     if response.status_code == 200:
-        results = response.json()
-        if results['features']:
-            first_result = results['features'][0]
-            latitude = first_result['geometry']['coordinates'][1]
-            longitude = first_result['geometry']['coordinates'][0]
-            return address, latitude, longitude
-    return None
+        data = response.json()
+        return data['routes'][0]['geometry']['coordinates']
+    else:
+        st.error(f"Error fetching route data from OSRM. Status code: {response.status_code}")
+        return []
 
-# TSP Solver using Simulated Annealing
+# Function to optimize route using geneticalgorithm
 def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95):
     def distance(point1, point2):
         return python_math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
@@ -102,8 +112,11 @@ def display_route(route, loc_df):
 
 # Display map with route
 def display_map(route, locations):
-    route_df = pd.DataFrame(route, columns=["lat", "lon"])
-    route_df["sequence"] = range(1, len(route) + 1)
+    route_coords = get_route_coordinates(route)
+    route_coords = [(lat, lon) for lon, lat in route_coords]  # swap order for Plotly
+
+    route_df = pd.DataFrame(route_coords, columns=["lat", "lon"])
+    route_df["sequence"] = range(1, len(route_coords) + 1)
     marker_df = pd.DataFrame(locations, columns=["lat", "lon"])
     marker_df["address"] = [f"Address {i+1}" for i in range(len(locations))]
 
@@ -186,7 +199,4 @@ def main():
             )
             st.markdown(f"[Open Optimized Route in Google Maps]({gmaps_link})")
         except Exception as e:
-            st.error(f"An error occurred during route optimization: {e}")
-
-if __name__ == "__main__":
-    main()
+            st.error(f"An error occurred during route optimization
