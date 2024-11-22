@@ -127,7 +127,7 @@ def main():
             "2440 Wisteria Dr SW, Snellville, GA 30078",
             "4757 Stone Mountain Hwy100, Lilburn, GA 30047",
             "217 Salem Glen Way, Conyers, GA 30013",
-            "105 Lee St, Bremen, GA 30110",
+            "105 Lee Street, Bremen, GA 30110",
             
         ]
 
