@@ -122,7 +122,7 @@ def main():
     with tab1:
         st.header("Welcome to the Route Map Optimization App")
         st.write(""" - Home: Introduction and navigation instructions.
-        - Addresses: Enter the addresses you want to optimize the route for.
+        - Addresses: Enter the addresses you want to optimize the route.Clear button clear default address in the search box.
         - Map: View the optimized route on the map.
         - Route Table: See the detailed route and distances between stops.
         -Preview driving direction takes to Google Maps.""")
