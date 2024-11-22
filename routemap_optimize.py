@@ -139,8 +139,8 @@ def main():
         else:
             addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
 
-        if st.button("Add More Addresses"):
-            addresses.extend([""] * 5)
+        #if st.button("Add More Addresses"):
+            #addresses.extend([""] * 5)
 
         if st.button("Optimize Route"):
             geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
