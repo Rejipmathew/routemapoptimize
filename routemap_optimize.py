@@ -124,10 +124,10 @@ def main():
         
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
-            "6015 State Bridge rd, Duluth, GA, 30097",
-            "3102 Hartford Mill Pl, Duluth, GA,30097",
-            "928 Hawk Creek Trail, Lawrenceville, GA,30043",
-            "1699 Centerville Dr, Buford, GA,30518",
+            "2440 WISTERIA DR, SNELLVILLE, GA, 30078-3326",
+            "4757 STONE MOUNTAIN HWY STE 100, LILBURN, GA",
+            "217  SALEM GLEN WAY, CONYERS, GA, 30013-5330",
+            "105  LEE ST, BREMEN, GA, 30110-1578",
             
         ]
 
