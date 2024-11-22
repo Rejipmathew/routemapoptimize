@@ -93,7 +93,7 @@ def display_route(route, loc_df):
     total_distance = 0
 
     for i in range(len(route) - 1):
-        loc1, loc2 = route[i], route(i + 1)
+        loc1, loc2 = route[i], route[i + 1]
         distance = geodesic(loc1, loc2).kilometers
         total_distance += distance
 
@@ -122,7 +122,7 @@ def main():
     with tab1:
         st.header("Welcome to the Route Map Optimization App")
         st.write(""" - Home: Introduction and navigation instructions.
-        - Addresses: Enter the addresses you want to optimize the route for.
+        - Addresses: Enter the addresses you want to optimize the route with first address as starting and last address as ending point.Clear button clear default address in the search box.
         - Map: View the optimized route on the map.
         - Route Table: See the detailed route and distances between stops.
         -Preview driving direction takes to Google Maps.""")
@@ -130,10 +130,7 @@ def main():
     with tab2:
         st.header("Enter Addresses")
 
-        addresses = [st.text_input(f"Address {i + 1}", value=st.session_state["addresses"][i]) for i in range(len(st.session_state["addresses"]))]
-
-        if st.button("Add More Addresses"):
-            st.session_state["addresses"].extend([""] * 5)
+        addresses = [st.text_input(f"Address {i + 1}", value=st.session_state["addresses"][i]) for i in range(10)]
 
         if st.button("Clear"):
             st.session_state["addresses"] = [""] * 10
