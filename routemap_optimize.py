@@ -94,28 +94,35 @@ def display_route(route, loc_df):
 
         from_name = loc_df.loc[loc_df['Coordinates'] == loc1, 'Place_Name'].values[0]
         to_name = loc_df.loc[loc_df['Coordinates'] == loc2, 'Place_Name'].values[0]
-        route_data.append((from_name, to_name, f"{distance:.2f} km", f"{distance * 0.621371:.2f} mi"))
+        route_data.append((from_name, to_name, f"{distance * 0.621371:.2f} miles"))
 
     st.metric("Total Distance", f"{total_distance * 0.621371:.2f} miles")
-    st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (km)", "Distance (mi)"]))
+    st.table(pd.DataFrame(route_data, columns=["From", "To", "Distance (miles)"]))
 
 # Main Streamlit application
 def main():
     st.title("Route Optimization with Interactive Map")
 
-    # Default addresses
-    default_addresses = [
-        "1950 Old Alabama Rd, Roswell, GA, 30076",
-        "6015 State Bridge rd, Duluth, GA, 30097",
-        "3102 Hartford Mill Pl, Duluth, GA,30097",
-        "928 Hawk Creek Trail, Lawrenceville, GA,30043",
-        "1699 Centerville Dr, Buford, GA,30518",
-        "1323 Terrasol ridge sw, lilburn, ga, 30047"
-    ]
+    # Upload CSV file with addresses
+    uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
     
-    # Input for up to 10 addresses with default addresses pre-populated
-    st.write("Enter up to 10 addresses:")
-    addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
+    if uploaded_file is not None:
+        addresses_df = pd.read_csv(uploaded_file)
+        addresses = addresses_df['Address'].tolist()
+    else:
+        # Default addresses
+        default_addresses = [
+            "1950 Old Alabama Rd, Roswell, GA, 30076",
+            "6015 State Bridge rd, Duluth, GA, 30097",
+            "3102 Hartford Mill Pl, Duluth, GA,30097",
+            "928 Hawk Creek Trail, Lawrenceville, GA,30043",
+            "1699 Centerville Dr, Buford, GA,30518",
+            "1323 Terrasol ridge sw, lilburn, ga, 30047"
+        ]
+        
+        # Input for up to 10 addresses with default addresses pre-populated
+        st.write("Enter up to 10 addresses:")
+        addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
 
     # Display map and calculate route
     if st.button("Optimize Route"):
@@ -151,6 +158,7 @@ def main():
                 [f"{lat},{lon}" for lat, lon in optimal_route]
             )
             st.markdown(f"[Open Optimized Route in Google Maps]({gmaps_link})")
+            
         except Exception as e:
             st.error(f"An error occurred during route optimization: {e}")
 
