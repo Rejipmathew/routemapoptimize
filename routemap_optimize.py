@@ -111,23 +111,21 @@ def main():
 
     with tab1:
         st.header("Welcome to the Route Optimization App")
-        st.write(""" - Home: Introduction and navigation instructions. 
-        - Addresses: Enter the addresses you want to optimize the route. To upload csv file add a header with addresss and enter address in each row.
-        - Map: View the optimized route on the map. 
-        - Route Table: See the detailed route and distances between stops. """)
-       # if st.button("Go to Addresses Tab"):
-            #st.experimental_set_query_params(tab="1")
+        st.write("Navigate through the tabs to enter addresses, view maps, and tables.")
+        if st.button("Go to Addresses Tab"):
+            st.experimental_set_query_params(tab="1")
 
     with tab2:
         st.header("Enter Addresses")
-        #st.write("Add addresses to optimize your route.")
+        st.write("Add addresses to optimize your route.")
         
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
-            "2440 Wisteria Dr SW, Snellville, GA 30078",
-            "4757 Stone Mountain Hwy100, Lilburn, GA 30047",
-            
-                        
+            "6015 State Bridge rd, Duluth, GA, 30097",
+            "3102 Hartford Mill Pl, Duluth, GA,30097",
+            "928 Hawk Creek Trail, Lawrenceville, GA,30043",
+            "1699 Centerville Dr, Buford, GA,30518",
+            "1323 Terrasol ridge sw, lilburn, ga, 30047"
         ]
 
         uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
@@ -138,8 +136,8 @@ def main():
         else:
             addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
 
-        #if st.button("Add More Addresses"):
-            #addresses.extend([""] * 5)
+        if st.button("Add More Addresses"):
+            addresses.extend([""] * 5)
 
         if st.button("Optimize Route"):
             geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
