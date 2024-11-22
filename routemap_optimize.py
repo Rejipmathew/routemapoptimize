@@ -106,7 +106,7 @@ def display_route(route, loc_df):
 
 # Main Streamlit application
 def main():
-    st.title("Enhanced Route Optimization with Red Block Icons")
+    st.title("Enhanced Route Optimization App")
     tab1, tab2, tab3, tab4 = st.tabs(["Home", "Addresses", "Map", "Route Table"])
 
     with tab1:
@@ -115,7 +115,7 @@ def main():
          - Addresses: Enter the addresses you want to optimize the route for.
          - Map: View the optimized route on the map.
          - Route Table: See the detailed route and distances between stops. 
-         -Preview driving direction takes to Google Maps""")
+         -Preview driving direction takes to Google Maps.""")
         #if st.button("Go to Addresses Tab"):
            # st.experimental_set_query_params(tab="1")
 
