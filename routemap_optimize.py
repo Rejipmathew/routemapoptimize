@@ -4,6 +4,8 @@ from geopy.distance import geodesic
 import requests
 import math as python_math  # Using python-math
 import random2  # Using random2
+import folium
+from streamlit_folium import st_folium
 
 # Function to compute distance matrix
 @st.cache_data
@@ -164,7 +166,25 @@ def main():
         st.header("Map View")
         if 'optimal_route' in st.session_state:
             optimal_route = st.session_state['optimal_route']
-            st.map(pd.DataFrame(optimal_route, columns=["lat", "lon"]))
+            loc_df = st.session_state['loc_df']
+
+            # Create a Folium map centered at the first location
+            map_center = optimal_route[0]
+            map_view = folium.Map(location=map_center, zoom_start=10)
+
+            # Add markers with popups for each location
+            for index, location in enumerate(optimal_route):
+                place_name = loc_df.loc[loc_df['Coordinates'] == location, 'Place_Name'].values[0]
+                folium.Marker(
+                    location=location,
+                    popup=f"<b>Address:</b> {place_name}",
+                    tooltip=f"Stop {index + 1}",
+                ).add_to(map_view)
+
+            # Display the map
+            st_data = st_folium(map_view, width=700, height=500)
+
+            # Option to view directions in Google Maps
             gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
                 [f"{lat},{lon}" for lat, lon in optimal_route]
             )
