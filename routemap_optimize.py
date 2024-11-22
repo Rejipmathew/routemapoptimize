@@ -111,8 +111,10 @@ def main():
 
     with tab1:
         st.header("Welcome to the Route Optimization App")
-        st.write(""" - Home: Introduction and navigation instructions. - Addresses: Enter the addresses you want to optimize the route for.
-        - Map: View the optimized route on the map. - Route Table: See the detailed route and distances between stops. """)
+        st.write(""" - Home: Introduction and navigation instructions. 
+        - Addresses: Enter the addresses you want to optimize the route for.
+        - Map: View the optimized route on the map. 
+        - Route Table: See the detailed route and distances between stops. """)
         if st.button("Go to Addresses Tab"):
             st.experimental_set_query_params(tab="1")
 
