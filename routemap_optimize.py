@@ -38,22 +38,30 @@ def geocode_address(address):
             return address, latitude, longitude
     return None
 
-# TSP Solver using Simulated Annealing
+# TSP Solver using Simulated Annealing with fixed start and end points
 def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95):
     def distance(point1, point2):
         return python_math.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
 
     num_locations = data_model['num_locations']
     locations = data_model['locations']
+    
+    # Fixed start and end points
+    start_point = locations[0]
+    end_point = locations[-1]
+    intermediate_points = locations[1:-1]
 
-    # Generate initial random solution
-    current_solution = list(range(num_locations))
+    # Generate initial random solution for intermediate points
+    current_solution = list(range(len(intermediate_points)))
     random2.shuffle(current_solution)
+
+    # Add fixed start and end points to the current solution
+    current_solution = [0] + [i + 1 for i in current_solution] + [num_locations - 1]
 
     # Calculate initial solution's distance
     current_distance = sum(
         distance(locations[current_solution[i - 1]], locations[current_solution[i]])
-        for i in range(num_locations)
+        for i in range(1, len(current_solution))
     )
 
     best_solution = current_solution[:]
@@ -63,12 +71,12 @@ def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95
     for _ in range(iterations):
         temp = temperature * (cooling_rate ** _)
         new_solution = current_solution[:]
-        i, j = random2.sample(range(num_locations), 2)
+        i, j = random2.sample(range(1, num_locations - 1), 2)
         new_solution[i], new_solution[j] = new_solution[j], new_solution[i]
 
         new_distance = sum(
             distance(locations[new_solution[i - 1]], locations[new_solution[i]])
-            for i in range(num_locations)
+            for i in range(1, len(new_solution))
         )
 
         delta = new_distance - current_distance
@@ -80,7 +88,7 @@ def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95
             best_solution = current_solution[:]
             best_distance = current_distance
 
-    return [locations[i] for i in best_solution] + [locations[best_solution[0]]]
+    return [locations[i] for i in best_solution]
 
 # Display route and distances
 def display_route(route, loc_df):
