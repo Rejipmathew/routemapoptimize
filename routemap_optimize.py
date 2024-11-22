@@ -120,7 +120,7 @@ def main():
 
     with tab2:
         st.header("Enter Addresses")
-        st.write("Add addresses to optimize your route.")
+        #st.write("Add addresses to optimize your route.")
         
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
