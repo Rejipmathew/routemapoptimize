@@ -109,98 +109,107 @@ def main():
     st.title("Enhanced Route Optimization with Red Block Icons")
     tab1, tab2, tab3, tab4 = st.tabs(["Home", "Addresses", "Map", "Route Table"])
 
-    with tab1:
-        st.header("Welcome to the Route Optimization App")
-        st.write("Navigate through the tabs to enter addresses, view maps, and tables.")
-        if st.button("Go to Addresses Tab"):
-            st.experimental_set_query_params(tab="1")
+    query_params = st.experimental_get_query_params()
+    default_tab = query_params.get("tab", ["0"])[0]
 
-    with tab2:
-        st.header("Enter Addresses")
-        st.write("Add addresses to optimize your route.")
-        
-        default_addresses = [
-            "1950 Old Alabama Rd, Roswell, GA, 30076",
-            "6015 State Bridge rd, Duluth, GA, 30097",
-            "3102 Hartford Mill Pl, Duluth, GA,30097",
-            "928 Hawk Creek Trail, Lawrenceville, GA,30043",
-            "1699 Centerville Dr, Buford, GA,30518",
-            "1323 Terrasol ridge sw, lilburn, ga, 30047"
-        ]
+    active_tab = int(default_tab)
+    
+    if active_tab == 0:
+        with tab1:
+            st.header("Welcome to the Route Optimization App")
+            st.write("Navigate through the tabs to enter addresses, view maps, and tables.")
+            if st.button("Go to Addresses Tab"):
+                st.experimental_set_query_params(tab="1")
 
-        uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
+    if active_tab == 1:
+        with tab2:
+            st.header("Enter Addresses")
+            st.write("Add addresses to optimize your route.")
+            
+            default_addresses = [
+                "1950 Old Alabama Rd, Roswell, GA, 30076",
+                "6015 State Bridge rd, Duluth, GA, 30097",
+                "3102 Hartford Mill Pl, Duluth, GA,30097",
+                "928 Hawk Creek Trail, Lawrenceville, GA,30043",
+                "1699 Centerville Dr, Buford, GA,30518",
+                "1323 Terrasol ridge sw, lilburn, ga, 30047"
+            ]
 
-        if uploaded_file:
-            addresses_df = pd.read_csv(uploaded_file)
-            addresses = addresses_df['Address'].tolist()
-        else:
-            addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
+            uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
 
-        if st.button("Add More Addresses"):
-            addresses.extend([""] * 5)
+            if uploaded_file:
+                addresses_df = pd.read_csv(uploaded_file)
+                addresses = addresses_df['Address'].tolist()
+            else:
+                addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
 
-        if st.button("Optimize Route"):
-            geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
-            geocoded = [x for x in geocoded if x is not None]
+            if st.button("Add More Addresses"):
+                addresses.extend([""] * 5)
 
-            if len(geocoded) < 2:
-                st.error("Please enter at least 2 valid addresses.")
-                return
+            if st.button("Optimize Route"):
+                geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
+                geocoded = [x for x in geocoded if x is not None]
 
-            locations = [(lat, lon) for _, lat, lon in geocoded]
-            place_names = [name for name, _, _ in geocoded]
-            loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
+                if len(geocoded) < 2:
+                    st.error("Please enter at least 2 valid addresses.")
+                    return
 
-            data_model = create_data_model(locations)
-            try:
-                optimal_route = tsp_solver(data_model)
+                locations = [(lat, lon) for _, lat, lon in geocoded]
+                place_names = [name for name, _, _ in geocoded]
+                loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
 
-                st.session_state['optimal_route'] = optimal_route
-                st.session_state['loc_df'] = loc_df
-                st.experimental_set_query_params(tab="2")
+                data_model = create_data_model(locations)
+                try:
+                    optimal_route = tsp_solver(data_model)
 
-            except Exception as e:
-                st.error(f"An error occurred during route optimization: {e}")
+                    st.session_state['optimal_route'] = optimal_route
+                    st.session_state['loc_df'] = loc_df
+                    st.experimental_set_query_params(tab="2")
 
-    with tab3:
-        st.header("Map View")
-        if 'optimal_route' in st.session_state:
-            optimal_route = st.session_state['optimal_route']
-            loc_df = st.session_state['loc_df']
+                except Exception as e:
+                    st.error(f"An error occurred during route optimization: {e}")
 
-            # Create a Folium map centered at the first location
-            map_center = optimal_route[0]
-            map_view = folium.Map(location=map_center, zoom_start=10)
+    if active_tab == 2:
+        with tab3:
+            st.header("Map View")
+            if 'optimal_route' in st.session_state:
+                optimal_route = st.session_state['optimal_route']
+                loc_df = st.session_state['loc_df']
 
-            # Add markers with custom red block icons for each location
-            for index, location in enumerate(optimal_route):
-                place_name = loc_df.loc[loc_df['Coordinates'] == location, 'Place_Name'].values[0]
-                folium.Marker(
-                    location=location,
-                    popup=f"<b>Address:</b> {place_name}",
-                    tooltip=f"Stop {index + 1}",
-                    icon=folium.Icon(color="red", icon="stop", prefix="fa"),
-                ).add_to(map_view)
+                # Create a Folium map centered at the first location
+                map_center = optimal_route[0]
+                map_view = folium.Map(location=map_center, zoom_start=10)
 
-            # Display the map
-            st_data = st_folium(map_view, width=700, height=500)
+                # Add markers with custom red block icons for each location
+                for index, location in enumerate(optimal_route):
+                    place_name = loc_df.loc[loc_df['Coordinates'] == location, 'Place_Name'].values[0]
+                    folium.Marker(
+                        location=location,
+                        popup=f"<b>Address:</b> {place_name}",
+                        tooltip=f"Stop {index + 1}",
+                        icon=folium.Icon(color="red", icon="stop", prefix="fa"),
+                    ).add_to(map_view)
 
-            # Option to view directions in Google Maps
-            gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
-                [f"{lat},{lon}" for lat, lon in optimal_route]
-            )
-            st.markdown(f"[Preview Driving Directions]({gmaps_link})")
-        else:
-            st.info("No route optimized yet.")
+                # Display the map
+                st_data = st_folium(map_view, width=700, height=500)
 
-    with tab4:
-        st.header("Route Table")
-        if 'loc_df' in st.session_state and 'optimal_route' in st.session_state:
-            loc_df = st.session_state['loc_df']
-            optimal_route = st.session_state['optimal_route']
-            display_route(optimal_route, loc_df)
-        else:
-            st.info("No route optimized yet.")
+                # Option to view directions in Google Maps
+                gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
+                    [f"{lat},{lon}" for lat, lon in optimal_route]
+                )
+                st.markdown(f"[Preview Driving Directions]({gmaps_link})")
+            else:
+                st.info("No route optimized yet.")
+
+    if active_tab == 3:
+        with tab4:
+            st.header("Route Table")
+            if 'loc_df' in st.session_state and 'optimal_route' in st.session_state:
+                loc_df = st.session_state['loc_df']
+                optimal_route = st.session_state['optimal_route']
+                display_route(optimal_route, loc_df)
+            else:
+                st.info("No route optimized yet.")
 
 if __name__ == "__main__":
     main()
