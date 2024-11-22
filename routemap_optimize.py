@@ -122,8 +122,8 @@ def main():
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
             "5720 Lilburn Stone Mountain Rd, Stone Mountain, GA 30087",
-            "6015 State Bridge rd, Duluth, GA, 30097",
-            "3102 Hartford Mill Pl, Duluth, GA,30097",
+            "1489 Buford Hwy, Cumming, GA 30041",
+            "225 Bashford Rd, Raleigh, NC 27606",
            
         ]
 
