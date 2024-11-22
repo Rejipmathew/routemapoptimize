@@ -121,7 +121,7 @@ def main():
         
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
-            "1801 Hills Creek Rd, Taylorsville, GA, 30178",
+            "5720 Lilburn Stone Mountain Rd, Stone Mountain, GA 30087",
            
         ]
 
