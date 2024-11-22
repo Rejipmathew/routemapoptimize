@@ -123,6 +123,7 @@ def main():
             "1950 Old Alabama Rd, Roswell, GA, 30076",
             "5720 Lilburn Stone Mountain Rd, Stone Mountain, GA 30087",
             "1489 Buford Hwy, Cumming, GA 30041",
+            "330 Village Dr, Dawsonville, GA 30534",
             "350 Rock Eagle Rd, Eatonton, GA 31024",
            
         ]
