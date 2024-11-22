@@ -124,10 +124,10 @@ def main():
         
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
-            "2440 WISTERIA DR, SNELLVILLE, GA, 30078-3326",
-            "4757 STONE MOUNTAIN HWY STE 100, LILBURN, GA",
-            "217  SALEM GLEN WAY, CONYERS, GA, 30013-5330",
-            "105  LEE ST, BREMEN, GA, 30110-1578",
+            "2440 Wisteria Dr SW, Snellville, GA 30078",
+            "4757 Stone Mountain Hwy #100, Lilburn, GA 30047",
+            "217 Salem Glen Way, Conyers, GA 30013",
+            "105 Lee St, Bremen, GA 30110",
             
         ]
 
