@@ -106,7 +106,7 @@ def display_route(route, loc_df):
 
 # Main Streamlit application
 def main():
-    st.title("Enhanced Route Optimization with Interactive Tabs")
+    st.title("Enhanced Route Optimization with Red Block Icons")
     tab1, tab2, tab3, tab4 = st.tabs(["Home", "Addresses", "Map", "Route Table"])
 
     with tab1:
@@ -172,13 +172,14 @@ def main():
             map_center = optimal_route[0]
             map_view = folium.Map(location=map_center, zoom_start=10)
 
-            # Add markers with popups for each location
+            # Add markers with custom red block icons for each location
             for index, location in enumerate(optimal_route):
                 place_name = loc_df.loc[loc_df['Coordinates'] == location, 'Place_Name'].values[0]
                 folium.Marker(
                     location=location,
                     popup=f"<b>Address:</b> {place_name}",
                     tooltip=f"Stop {index + 1}",
+                    icon=folium.Icon(color="red", icon="stop", prefix="fa"),
                 ).add_to(map_view)
 
             # Display the map
