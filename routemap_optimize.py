@@ -133,7 +133,7 @@ def display_map_with_directions(route, loc_df):
             opacity=1
         ).add_to(m)
 
-    st_folium(m, width=700, height=500)
+    st_folium(m, width=700, height=500, key="map")
 
 # Main Streamlit application
 def main():
