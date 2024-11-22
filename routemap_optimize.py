@@ -110,7 +110,7 @@ def main():
         "3102 Hartford Mill Pl, Duluth, GA,30097",
         "928 Hawk Creek Trail, Lawrenceville, GA,30043",
         "1699 Centerville Dr, Buford, GA,30518",
-        "680 Grand Reserve Dr., Suwanee, GA,30024"
+        "1323 Terrasol ridge sw, lilburn, ga, 30047"
     ]
     
     # Input for up to 10 addresses with default addresses pre-populated
