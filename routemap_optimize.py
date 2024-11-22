@@ -121,11 +121,8 @@ def main():
         
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
-            "6015 State Bridge rd, Duluth, GA, 30097",
-            "3102 Hartford Mill Pl, Duluth, GA,30097",
-            "928 Hawk Creek Trail, Lawrenceville, GA,30043",
-            "1699 Centerville Dr, Buford, GA,30518",
-            "1323 Terrasol ridge sw, lilburn, ga, 30047"
+            "4814 US-78 , Lilburn, GA 30047",
+           
         ]
 
         uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
