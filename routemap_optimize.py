@@ -122,8 +122,7 @@ def main():
     with tab1:
         st.header("Welcome to the Route Map Optimization App")
   st.write("""
-# Home
-Welcome to the Route Optimizer app! This app helps you optimize your route for multiple addresses. Here's how you can use it
+  Welcome to the Route Optimizer app! This app helps you optimize your route for multiple addresses. Here's how you can use it
 """)
 
 
