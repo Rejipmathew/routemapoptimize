@@ -116,15 +116,15 @@ def main():
             "1489 Buford Hwy, Cumming, GA 30041",
             "330 Village Dr, Dawsonville, GA 30534",
             "350 Rock Eagle Rd, Eatonton, GA 31024",
-            "", "", "", "", ""
+            "", "", "", "", "","","","","",""
         ]
 
     with tab1:
         st.header("Welcome to the Route Map Optimization App")
-  st.write(""" # Home Welcome to the Route Optimizer app! This app helps you optimize your route for multiple addresses. Here's how you can use it
-  ## Addresses - Enter the addresses you want to optimize the route with, starting with the first address as the starting point and the last address as the ending point.
+  st.write(""" Home Welcome to the Route Optimizer app! This app helps you optimize your route for multiple addresses. Here's how you can use it
+  Addresses - Enter the addresses you want to optimize the route with, starting with the first address as the starting point and the last address as the ending point.
   - Use the 'Clear' button to clear the default address in the search box.
-  ## Map - View the optimized route on the map. ## Route Table - See the detailed route and distances between stops. ## Preview Driving Directions 
+  Map - View the optimized route on the map. ## Route Table - See the detailed route and distances between stops. ## Preview Driving Directions 
   - Click the button to preview driving directions, which will take you to Google Maps. """)
 
     with tab2:
