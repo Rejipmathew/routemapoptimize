@@ -127,8 +127,7 @@ def main():
             "2440 Wisteria Dr SW, Snellville, GA 30078",
             "4757 Stone Mountain Hwy100, Lilburn, GA 30047",
             "217 Salem Glen Way, Conyers, GA 30013",
-            "1801 Hills Creek Rd, Taylorsville, GA 30178",
-            
+                        
         ]
 
         uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
