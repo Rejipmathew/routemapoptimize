@@ -104,23 +104,19 @@ def display_route(route, loc_df):
 
 # Main Streamlit application
 def main():
-    # Initialize session state for tabs
-    if "active_tab" not in st.session_state:
-        st.session_state.active_tab = "Home"
+    st.title("Enhanced Route Optimization with Interactive Tabs")
+    tab1, tab2, tab3, tab4 = st.tabs(["Home", "Addresses", "Map", "Route Table"])
 
-    # Navigation buttons
-    def set_active_tab(tab_name):
-        st.session_state.active_tab = tab_name
-
-    # Tab rendering logic
-    if st.session_state.active_tab == "Home":
-        st.title("Welcome to the Route Optimization App")
+    with tab1:
+        st.header("Welcome to the Route Optimization App")
         st.write("Navigate through the tabs to enter addresses, view maps, and tables.")
         if st.button("Go to Addresses Tab"):
-            set_active_tab("Addresses")
+            st.experimental_set_query_params(tab="1")
 
-    elif st.session_state.active_tab == "Addresses":
-        st.title("Enter Addresses")
+    with tab2:
+        st.header("Enter Addresses")
+        st.write("Add addresses to optimize your route.")
+        
         default_addresses = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
             "6015 State Bridge rd, Duluth, GA, 30097",
@@ -129,20 +125,61 @@ def main():
             "1699 Centerville Dr, Buford, GA,30518",
             "1323 Terrasol ridge sw, lilburn, ga, 30047"
         ]
-        addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
+
+        uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
+
+        if uploaded_file:
+            addresses_df = pd.read_csv(uploaded_file)
+            addresses = addresses_df['Address'].tolist()
+        else:
+            addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
+
+        if st.button("Add More Addresses"):
+            addresses.extend([""] * 5)
+
         if st.button("Optimize Route"):
-            # Dummy success message
-            st.success("Route optimized! Navigate to the Map or Route Table tabs.")
+            geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
+            geocoded = [x for x in geocoded if x is not None]
 
-    elif st.session_state.active_tab == "Map":
-        st.title("Map View")
-        st.write("Display the map here.")
-        if st.button("Go to Route Table"):
-            set_active_tab("Route Table")
+            if len(geocoded) < 2:
+                st.error("Please enter at least 2 valid addresses.")
+                return
 
-    elif st.session_state.active_tab == "Route Table":
-        st.title("Route Table")
-        st.write("Display the route table here.")
+            locations = [(lat, lon) for _, lat, lon in geocoded]
+            place_names = [name for name, _, _ in geocoded]
+            loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
+
+            data_model = create_data_model(locations)
+            try:
+                optimal_route = tsp_solver(data_model)
+
+                st.session_state['optimal_route'] = optimal_route
+                st.session_state['loc_df'] = loc_df
+                st.experimental_set_query_params(tab="2")
+
+            except Exception as e:
+                st.error(f"An error occurred during route optimization: {e}")
+
+    with tab3:
+        st.header("Map View")
+        if 'optimal_route' in st.session_state:
+            optimal_route = st.session_state['optimal_route']
+            st.map(pd.DataFrame(optimal_route, columns=["lat", "lon"]))
+            gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
+                [f"{lat},{lon}" for lat, lon in optimal_route]
+            )
+            st.markdown(f"[Preview Driving Directions]({gmaps_link})")
+        else:
+            st.info("No route optimized yet.")
+
+    with tab4:
+        st.header("Route Table")
+        if 'loc_df' in st.session_state and 'optimal_route' in st.session_state:
+            loc_df = st.session_state['loc_df']
+            optimal_route = st.session_state['optimal_route']
+            display_route(optimal_route, loc_df)
+        else:
+            st.info("No route optimized yet.")
 
 if __name__ == "__main__":
     main()
