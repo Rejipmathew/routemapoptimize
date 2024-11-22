@@ -46,19 +46,15 @@ def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95
     num_locations = data_model['num_locations']
     locations = data_model['locations']
     
-    # Fixed start and end points
     start_point = locations[0]
     end_point = locations[-1]
     intermediate_points = locations[1:-1]
 
-    # Generate initial random solution for intermediate points
     current_solution = list(range(len(intermediate_points)))
     random2.shuffle(current_solution)
 
-    # Add fixed start and end points to the current solution
     current_solution = [0] + [i + 1 for i in current_solution] + [num_locations - 1]
 
-    # Calculate initial solution's distance
     current_distance = sum(
         distance(locations[current_solution[i - 1]], locations[current_solution[i]])
         for i in range(1, len(current_solution))
@@ -67,7 +63,6 @@ def tsp_solver(data_model, iterations=1000, temperature=10000, cooling_rate=0.95
     best_solution = current_solution[:]
     best_distance = current_distance
 
-    # Simulated Annealing
     for _ in range(iterations):
         temp = temperature * (cooling_rate ** _)
         new_solution = current_solution[:]
@@ -109,59 +104,82 @@ def display_route(route, loc_df):
 
 # Main Streamlit application
 def main():
-    st.title("Route Optimization with Interactive Map")
-    
-    # Default addresses
-    default_addresses = [
-        "1950 Old Alabama Rd, Roswell, GA, 30076",
-        "6015 State Bridge rd, Duluth, GA, 30097",
-        "3102 Hartford Mill Pl, Duluth, GA,30097",
-        "928 Hawk Creek Trail, Lawrenceville, GA,30043",
-        "1699 Centerville Dr, Buford, GA,30518",
-        "1323 Terrasol ridge sw, lilburn, ga, 30047"
-    ]
-    
-    # Upload CSV file with addresses
-    uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
-    
-    if uploaded_file is not None:
-        addresses_df = pd.read_csv(uploaded_file)
-        addresses = addresses_df['Address'].tolist()
-        while len(addresses) < 10:
-            addresses.append("")
-    else:
-        st.write("Enter up to 10 addresses:")
-        addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
+    st.title("Enhanced Route Optimization with Interactive Tabs")
+    tab1, tab2, tab3, tab4 = st.tabs(["Home", "Addresses", "Map", "Route Table"])
 
-    if st.button("Optimize Route"):
-        geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
-        geocoded = [x for x in geocoded if x is not None]
+    with tab1:
+        st.header("Welcome to the Route Optimization App")
+        st.write("Navigate through the tabs to enter addresses, view maps, and tables.")
+        if st.button("Go to Addresses Tab"):
+            st.experimental_set_query_params(tab="1")
 
-        if len(geocoded) < 2:
-            st.error("Please enter at least 2 valid addresses.")
-            return
+    with tab2:
+        st.header("Enter Addresses")
+        st.write("Add addresses to optimize your route.")
+        
+        default_addresses = [
+            "1950 Old Alabama Rd, Roswell, GA, 30076",
+            "6015 State Bridge rd, Duluth, GA, 30097",
+            "3102 Hartford Mill Pl, Duluth, GA,30097",
+            "928 Hawk Creek Trail, Lawrenceville, GA,30043",
+            "1699 Centerville Dr, Buford, GA,30518",
+            "1323 Terrasol ridge sw, lilburn, ga, 30047"
+        ]
 
-        locations = [(lat, lon) for _, lat, lon in geocoded]
-        place_names = [name for name, _, _ in geocoded]
-        loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
+        uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
 
-        data_model = create_data_model(locations)
-        try:
-            optimal_route = tsp_solver(data_model)
+        if uploaded_file:
+            addresses_df = pd.read_csv(uploaded_file)
+            addresses = addresses_df['Address'].tolist()
+        else:
+            addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
 
-            tab1, tab2 = st.tabs(["Map", "Route Table"])
-            with tab1:
-                st.map(pd.DataFrame(optimal_route, columns=["lat", "lon"]))
-                gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
-                    [f"{lat},{lon}" for lat, lon in optimal_route]
-                )
-                st.markdown(f"[Preview Driving Directions]({gmaps_link})")
+        if st.button("Add More Addresses"):
+            addresses.extend([""] * 5)
 
-            with tab2:
-                display_route(optimal_route, loc_df)
+        if st.button("Optimize Route"):
+            geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
+            geocoded = [x for x in geocoded if x is not None]
 
-        except Exception as e:
-            st.error(f"An error occurred during route optimization: {e}")
+            if len(geocoded) < 2:
+                st.error("Please enter at least 2 valid addresses.")
+                return
+
+            locations = [(lat, lon) for _, lat, lon in geocoded]
+            place_names = [name for name, _, _ in geocoded]
+            loc_df = pd.DataFrame({'Place_Name': place_names, 'Coordinates': locations})
+
+            data_model = create_data_model(locations)
+            try:
+                optimal_route = tsp_solver(data_model)
+
+                st.session_state['optimal_route'] = optimal_route
+                st.session_state['loc_df'] = loc_df
+                st.experimental_set_query_params(tab="2")
+
+            except Exception as e:
+                st.error(f"An error occurred during route optimization: {e}")
+
+    with tab3:
+        st.header("Map View")
+        if 'optimal_route' in st.session_state:
+            optimal_route = st.session_state['optimal_route']
+            st.map(pd.DataFrame(optimal_route, columns=["lat", "lon"]))
+            gmaps_link = "https://www.google.com/maps/dir/" + "/".join(
+                [f"{lat},{lon}" for lat, lon in optimal_route]
+            )
+            st.markdown(f"[Preview Driving Directions]({gmaps_link})")
+        else:
+            st.info("No route optimized yet.")
+
+    with tab4:
+        st.header("Route Table")
+        if 'loc_df' in st.session_state and 'optimal_route' in st.session_state:
+            loc_df = st.session_state['loc_df']
+            optimal_route = st.session_state['optimal_route']
+            display_route(optimal_route, loc_df)
+        else:
+            st.info("No route optimized yet.")
 
 if __name__ == "__main__":
     main()
