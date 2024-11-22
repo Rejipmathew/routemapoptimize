@@ -109,39 +109,31 @@ def main():
     st.title("Enhanced Route Optimization App")
     tab1, tab2, tab3, tab4 = st.tabs(["Home", "Addresses", "Map", "Route Table"])
 
-    with tab1:
-        st.header("Welcome to the Route Map Optimization App ")
-        st.write(""" - Home: Introduction and navigation instructions.
-         - Addresses: Enter the addresses you want to optimize the route for.
-         - Map: View the optimized route on the map.
-         - Route Table: See the detailed route and distances between stops. 
-         -Preview driving direction takes to Google Maps.""")
-        #if st.button("Go to Addresses Tab"):
-           # st.experimental_set_query_params(tab="1")
-
-    with tab2:
-        st.header("Enter Addresses")
-        #st.write("Add addresses to optimize your route.")
-        
-        default_addresses = [
+    if "addresses" not in st.session_state:
+        st.session_state["addresses"] = [
             "1950 Old Alabama Rd, Roswell, GA, 30076",
             "5720 Lilburn Stone Mountain Rd, Stone Mountain, GA 30087",
             "1489 Buford Hwy, Cumming, GA 30041",
             "330 Village Dr, Dawsonville, GA 30534",
             "350 Rock Eagle Rd, Eatonton, GA 31024",
-           
+            "", "", "", "", ""
         ]
 
-        uploaded_file = st.file_uploader("Upload CSV file with addresses", type="csv")
+    with tab1:
+        st.header("Welcome to the Route Map Optimization App")
+        st.write(""" - Home: Introduction and navigation instructions.
+        - Addresses: Enter the addresses you want to optimize the route for.
+        - Map: View the optimized route on the map.
+        - Route Table: See the detailed route and distances between stops.
+        -Preview driving direction takes to Google Maps.""")
 
-        if uploaded_file:
-            addresses_df = pd.read_csv(uploaded_file)
-            addresses = addresses_df['Address'].tolist()
-        else:
-            addresses = [st.text_input(f"Address {i + 1}", value=default_addresses[i] if i < len(default_addresses) else "") for i in range(10)]
+    with tab2:
+        st.header("Enter Addresses")
+
+        addresses = [st.text_input(f"Address {i + 1}", value=st.session_state["addresses"][i]) for i in range(10)]
 
         if st.button("Clear"):
-            addresses = [""] * 10
+            st.session_state["addresses"] = [""] * 10
 
         if st.button("Optimize Route"):
             geocoded = [geocode_address(addr) for addr in addresses if addr.strip()]
